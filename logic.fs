@@ -18,3 +18,19 @@ type Term =
   | And of Seq<Term>
   | Or of Seq<Term>
   | Not of Term
+
+type AndTerm =
+  | Literal of Literal
+  | And of Seq<Literal>
+
+type DNF = 
+  | AndTerm of AndTerm
+  | Or of Seq<AndTerm>
+
+type OrTerm =
+  | Literal of Literal
+  | Or of Seq<Literal>
+
+type CNF = 
+  | OrTerm of OrTerm
+  | And of Seq<OrTerm>
