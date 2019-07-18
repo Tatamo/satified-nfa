@@ -5,7 +5,7 @@ type Atomic =
   | False
   | Var of string
 
-type Literal = 
+type Literal =
   | Atomic of Atomic
   | Not of Atomic
 
@@ -14,6 +14,7 @@ type SemiLiteral =
   | Not of SemiLiteral
 
 type Term =
-  | Literal of Literal
-  | And of Literal * Literal
-  | Or of Literal * Literal
+  | SemiLiteral of SemiLiteral
+  | And of Seq<Term>
+  | Or of Seq<Term>
+  | Not of Term
