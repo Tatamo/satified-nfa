@@ -5,32 +5,34 @@ type Atomic =
   | False
   | Var of string
 
+type Not<'a> =
+  | Not of 'a
+
 type Literal =
   | Atomic of Atomic
-  | Not of Atomic
+  | LNot of Not<Atomic>
 
 type SemiLiteral =
   | Literal of Literal
-  | Not of SemiLiteral
+  | SLNot of Not<SemiLiteral>
 
 type Term =
   | SemiLiteral of SemiLiteral
-  | And of Seq<Term>
-  | Or of Seq<Term>
-  | Not of Term
+  | And of seq<Term>
+  | Or of seq<Term>
 
 type AndTerm =
   | Literal of Literal
-  | And of Seq<Literal>
+  | And of seq<Literal>
 
 type DNF = 
   | AndTerm of AndTerm
-  | Or of Seq<AndTerm>
+  | Or of seq<AndTerm>
 
 type OrTerm =
   | Literal of Literal
-  | Or of Seq<Literal>
+  | Or of seq<Literal>
 
 type CNF = 
   | OrTerm of OrTerm
-  | And of Seq<OrTerm>
+  | And of seq<OrTerm>
