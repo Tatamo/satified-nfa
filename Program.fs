@@ -7,5 +7,5 @@ let gterm = GNot (GNot (GNot (GAnd [GNot (GAtomic True); GOr[GAtomic True; GAnd 
 [<EntryPoint>]
 let main argv =
     printfn "Hello World from F#!"
-    printfn "%A" (literalize (convertDeMorgan gterm))
+    printfn "%A" (gterm |> convertDeMorgan |> literalize |> formatLT)
     0 // return an integer exit code

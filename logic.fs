@@ -76,3 +76,17 @@ let rec literalize semilLiteralTerm =
       | SLNot (Not z) -> literalize (SLTLiteral z)
   | SLTAnd x -> LTAnd(Seq.map literalize x)
   | SLTOr x -> LTOr(Seq.map literalize x)
+
+let rec formatLiteral literal =
+  match literal with
+  | Atomic x ->
+    match x with
+    | True -> "True"
+    | False -> "False"
+    | Var(name) -> name
+  | LNot (Not x) -> "NOT " + (formatLiteral (Atomic x))
+let rec formatLT literalTerm =
+  match literalTerm with
+  | LTLiteral x -> formatLiteral x
+  | LTAnd x -> "(" + (String.concat ") AND (" (Seq.map formatLT x)) + ")"
+  | LTOr x -> "(" + (String.concat ") OR (" (Seq.map formatLT x)) + ")"
