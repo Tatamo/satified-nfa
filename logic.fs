@@ -31,24 +31,35 @@ let rec literalize semiLiteral =
       | DoubleNot(Not (Not x)) -> LNot (Not x)
       | MultiNot(Not x) -> literalize(MultiNotSemiLiteral x)
 
+type GeneralTerm =
+  | Atomic of Atomic
+  | Not of GeneralTerm
+  | And of seq<GeneralTerm>
+  | Or of seq<GeneralTerm>
 
-type Term =
-  | SemiLiteral of SemiLiteral
-  | And of seq<Term>
-  | Or of seq<Term>
-
-type AndTerm =
+type AndForm =
   | Literal of Literal
   | And of seq<Literal>
 
 type DNF = 
-  | AndTerm of AndTerm
-  | Or of seq<AndTerm>
+  | AndForm of AndForm
+  | Or of seq<AndForm>
 
-type OrTerm =
+type OrForm =
   | Literal of Literal
   | Or of seq<Literal>
 
 type CNF = 
-  | OrTerm of OrTerm
-  | And of seq<OrTerm>
+  | OrForm of OrForm
+  | And of seq<OrForm>
+
+
+let rec convertDeMorgan term =
+  match term with
+  | Not x ->
+    match x with
+    | GeneralTerm.And y -> GeneralTerm.Or (Seq.map (Not >> convertDeMorgan) y)
+    | GeneralTerm.Or y -> GeneralTerm.And (Seq.map (Not >> convertDeMorgan) y)
+    | _ -> Not (convertDeMorgan x)
+  | x -> x
+
