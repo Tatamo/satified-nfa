@@ -83,10 +83,46 @@ let rec formatLiteral literal =
     match x with
     | True -> "True"
     | False -> "False"
-    | Var(name) -> name
+    | Var name -> name
   | LNot (Not x) -> "NOT " + (formatLiteral (Atomic x))
 let rec formatLT literalTerm =
   match literalTerm with
   | LTLiteral x -> formatLiteral x
   | LTAnd x -> "(" + (String.concat ") AND (" (Seq.map formatLT x)) + ")"
   | LTOr x -> "(" + (String.concat ") OR (" (Seq.map formatLT x)) + ")"
+
+let rec mergeDuplicateAndOr literalTerm =
+  match literalTerm with
+  | LTLiteral _ -> literalTerm
+  | LTAnd x ->
+    let isAnd lt = match lt with LTAnd _ -> true | _ -> false in
+    LTAnd (
+      Seq.concat [
+        Seq.filter (isAnd >> not) x;
+        x
+        |> Seq.filter isAnd
+        |> Seq.collect (fun e ->  match e with LTAnd x -> x | _ -> seq [])
+      ] |> Seq.map mergeDuplicateAndOr
+    )
+  | LTOr x ->
+    let isOr lt = match lt with LTOr _ -> true | _ -> false in
+    LTOr (
+      Seq.concat [
+        Seq.filter (isOr >> not) x;
+        x
+        |> Seq.filter isOr
+        |> Seq.collect (fun e ->  match e with LTOr x -> x | _ -> seq [])
+      ] |> Seq.map mergeDuplicateAndOr
+    )
+    
+
+(*
+let nt = LNot (Not True)
+let nnt = DoubleNot (Not (Not True))
+let nnnt = Not nnt
+let nL = LNot (Not True)
+let dn = DoubleNot (Not (Not True))
+let tn = MultiNot (Not dn)
+let sl = MultiNotSemiLiteral tn
+let sl' = MultiNotSemiLiteral (MultiNot (Not (DoubleNot (Not (Not True)))))
+*)
