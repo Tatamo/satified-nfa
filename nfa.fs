@@ -26,5 +26,25 @@ let rules = Set.ofList [
 let nfa = (alphabets, states, rules, start, accepts)
 
 let p (state:State) (index:int) = Var("p" + state.ToString() + "-" + index.ToString() )
-let x (index:int) (input:char) = Var("x" + index.ToString() + "-" + string input)
+let x (input:char) (index:int) = Var("x" + string input + "-" + index.ToString())
+
+// for all states that is not start state, px0=false
+let pInitials =
+  states
+  |> Seq.map (fun state ->
+    if states.Contains state then
+      Atomic (p state 0) else
+      LNot (Not (p state 0)))
+let rules1 =
+  rules
+  |> Seq.map (fun rule ->
+    match rule with
+    | (state, input, next) ->
+      // p(state, 0) AND x(1,input) -> OR{ Not p(s, 1) : for all s∈states, Rule(state, input, next) ∉ rules }
+      // AND { Not p(..) OR Not x(..) OR Not p(s, 1) : for all s∈states, Rule(state, input, next) ∉ rules }
+      () // [WIP]
+  )
+
+let terms = []
+
 //let code nfa:NFA n:int =

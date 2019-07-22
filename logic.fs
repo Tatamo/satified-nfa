@@ -114,7 +114,53 @@ let rec mergeDuplicateAndOr literalTerm =
         |> Seq.collect (fun e ->  match e with LTOr x -> x | _ -> seq [])
       ] |> Seq.map mergeDuplicateAndOr
     )
+
+(*
+type LiteralTerm' =
+  | LTLiteral' of Literal
+  | LTAnd' of LiteralTerm' * LiteralTerm'
+  | LTOr' of LiteralTerm' * LiteralTerm'
+
+let disassembleAnd term =
+  match term with
+  | LTAnd x ->
+    match (Seq.toList x) with
+    | fst :: snd :: tail -> fst
+    | [e] -> e
+    | [] ->
+    x |> Seq.sortBy (fun e ->
+    match e with
+    | LTLiteral _ -> 0
+    | LTOr _ -> 1
+    | _ -> 2)
+  | _ -> term
+*)
+
+(*
+let rec convert2ary literalTerm =
+  match literalTerm with
+  | LTLiteral x -> LTLiteral' x
+  | LTAnd x ->
     
+    *)
+
+
+// A AND (B OR C)
+// (A AND B) OR (A AND C)
+// (X OR Y) AND (X OR Z)
+// ((X OR Y) AND X) OR ((X OR Y) AND Z)
+
+(*
+let rec convert2CNF literalTerm =
+  match literalTerm with
+  | LTLiteral x -> AndForm (AndForm.Literal x)
+  | LTAnd x ->
+    AndForm (AndForm.And(x |> Seq.map (fun x->
+      match x with
+      | LTLiteral y -> y
+      | 
+    )))
+*)
 
 (*
 let nt = LNot (Not True)
