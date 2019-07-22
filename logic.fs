@@ -17,25 +17,24 @@ type MultiNotAtomic =
   | MultiNot of Not<MultiNotAtomic>
 
 type SemiLiteral =
-  | Literal of Literal
-  | MultiNotSemiLiteral of MultiNotAtomic
-
-let rec literalize semiLiteral =
-  match semiLiteral with
-  | Literal(a) -> a
-  | MultiNotSemiLiteral(mn) ->
-    match mn with
-    | DoubleNot(Not (Not x)) -> Atomic x
-    | MultiNot(Not x) ->
-      match x with
-      | DoubleNot(Not (Not x)) -> LNot (Not x)
-      | MultiNot(Not x) -> literalize(MultiNotSemiLiteral x)
+  | SLAtomic of Atomic
+  | SLNot of Not<SemiLiteral>
 
 type GeneralTerm =
-  | Atomic of Atomic
-  | Not of GeneralTerm
-  | And of seq<GeneralTerm>
-  | Or of seq<GeneralTerm>
+  | GAtomic of Atomic
+  | GNot of GeneralTerm
+  | GAnd of seq<GeneralTerm>
+  | GOr of seq<GeneralTerm>
+
+type SemiLiteralTerm =
+  | SLTLiteral of SemiLiteral
+  | SLTAnd of seq<SemiLiteralTerm>
+  | SLTOr of seq<SemiLiteralTerm>
+
+type LiteralTerm =
+  | LTLiteral of Literal
+  | LTAnd of seq<LiteralTerm>
+  | LTOr of seq<LiteralTerm>
 
 type AndForm =
   | Literal of Literal
@@ -56,10 +55,24 @@ type CNF =
 
 let rec convertDeMorgan term =
   match term with
-  | Not x ->
+  | GAtomic x -> SLTLiteral (SLAtomic x)
+  | GNot x ->
     match x with
-    | GeneralTerm.And y -> GeneralTerm.Or (Seq.map (Not >> convertDeMorgan) y)
-    | GeneralTerm.Or y -> GeneralTerm.And (Seq.map (Not >> convertDeMorgan) y)
-    | _ -> Not (convertDeMorgan x)
-  | x -> x
+    | GAtomic y -> SLTLiteral (SLNot (Not (SLAtomic y)))
+    | GNot y -> convertDeMorgan y // remove NotNot
+    | GAnd y -> SLTOr (Seq.map (GNot >> convertDeMorgan) y)
+    | GOr y -> SLTAnd (Seq.map (GNot >> convertDeMorgan) y)
+  | GAnd x -> SLTAnd (Seq.map convertDeMorgan x)
+  | GOr x -> SLTOr (Seq.map convertDeMorgan x)
 
+let rec literalize semilLiteralTerm =
+  match semilLiteralTerm with
+  | SLTLiteral x ->
+    match x with
+    | SLAtomic y -> LTLiteral (Atomic y)
+    | SLNot (Not y) ->
+    match y with
+      | SLAtomic z -> LTLiteral (LNot (Not z))
+      | SLNot (Not z) -> literalize (SLTLiteral z)
+  | SLTAnd x -> LTAnd(Seq.map literalize x)
+  | SLTOr x -> LTOr(Seq.map literalize x)
