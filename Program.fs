@@ -15,8 +15,7 @@ let gterm = GNot (GAnd [
 
 [<EntryPoint>]
 let main argv =
-    printfn "Hello World from F#!"
-    printfn "%A" (gterm |> convertDeMorgan |> literalize |> formatLT)
-    printfn "%A" (gterm |> convertDeMorgan |> literalize |> mergeDuplicateAndOr |> formatLT)
-    printfn "%A" (terms |> formatCNF)
+    // printfn "%A" (gterm |> convertDeMorgan |> literalize |> formatLT)
+    // printfn "%A" (gterm |> convertDeMorgan |> literalize |> mergeDuplicateAndOr |> formatLT)
+    printfn "%s" (terms |> formatCNF)
     0 // return an integer exit code

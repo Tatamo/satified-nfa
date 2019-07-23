@@ -121,7 +121,7 @@ let rec formatLiteral' literal =
     | True -> "True"
     | False -> "False"
     | Var name -> name
-  | LNot (Not x) -> "-" + (formatLiteral' (Atomic x))
+  | LNot (Not x) -> "~" + (formatLiteral' (Atomic x))
 let rec formatOrForm orForm=
   match orForm with
   | Literal x -> formatLiteral' x

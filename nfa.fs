@@ -33,42 +33,42 @@ let nfa = (alphabets, states, rules, start, accepts)
 let indexState state =
   match state with State i -> i
 let p (state:State) (index:int) = Var((inputString.Length + index * states.Count + indexState state).ToString())
-let x (index:int) = Var(index.ToString())
+let x (index:int) = Var((index - 1).ToString())
 
+let char2bool c = (c <> '0')
 let input2Props (input:string) =
   input
   |> Seq.toList
   |> Seq.indexed
   |> Seq.map (fun (index, c) ->
-    let char2bool c = (c <> '0') in
     if char2bool c then
-      OrForm.Literal(Atomic (x index)) else
-      OrForm.Literal(LNot (Not (x index)))
+      OrForm.Literal(Atomic (x (index + 1))) else
+      OrForm.Literal(LNot (Not (x (index + 1))))
   )
 // for all states that is not start state, px0=false
 let pInitials start =
   states
   |> Seq.map (fun state ->
     if state = start then
-      Atomic (p state 0) else
-      LNot (Not (p state 0)))
-  |> OrForm.Or
-let rules2Props' n =
+      OrForm.Or [Atomic (p state 0)] else
+      OrForm.Or [LNot (Not (p state 0))])
+let rules2Props' i =
   Seq.collect (fun rule ->
     match rule with
     | (state, input, next) ->
-      // p(state, 0) AND x(input, 1) -> OR{ Not p(s, 1) : for all s∈states, Rule(state, input, next) ∉ rules }
-      // AND { Not p(..) OR Not x(..) OR Not p(s, 1) : for all s∈states, Rule(state, input, next) ∉ rules }
-      let p' = p state n in
-      let x' = x (n + 1) in
+      // p(state, 0) AND x(input, 1) -> OR{ Not p(s, 1) : for all s∈states, Rule(s, input, next) ∉ rules }
+      // AND { Not p(..) OR Not x(..) OR Not p(s, 1) : for all s∈states, Rule(s, input, next) ∉ rules }
+      let p' = p state i in
+      let x' = x (i + 1) in
       states
       |> Seq.filter (fun state -> state <> next)
       |> Seq.map (fun state ->
-        OrForm.Or [LNot (Not p'); LNot (Not x'); LNot (Not (p state (n + 1)))]
+        let x'' = if char2bool input then Atomic x' else LNot (Not x') in
+        OrForm.Or [LNot (Not p'); x''; LNot (Not (p state (i + 1)))]
        )) rules
 let rules2Props n = seq {0 .. n-1} |> Seq.collect rules2Props'
 
 let terms =
-  [input2Props inputString;seq [pInitials start]; rules2Props n]
+  [input2Props inputString; pInitials start; rules2Props n]
   |> Seq.concat
   |> CNF.And
