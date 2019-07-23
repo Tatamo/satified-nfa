@@ -28,8 +28,12 @@ let rules = Set.ofList [
 ]
 let nfa = (alphabets, states, rules, start, accepts)
 
-let p (state:State) (index:int) = Var("p" + (match state with State(i) -> i.ToString()) + "-" + index.ToString() )
-let x (input:char) (index:int) = Var("x" + string input + "-" + index.ToString())
+//let p (state:State) (index:int) = Var("p" + (match state with State(i) -> i.ToString()) + "-" + index.ToString() )
+//let x (input:char) (index:int) = Var("x" + string input + "-" + index.ToString())
+let indexState state =
+  match state with State i -> i
+let p (state:State) (index:int) = Var((inputString.Length + index * states.Count + indexState state).ToString())
+let x (index:int) = Var(index.ToString())
 
 let input2Props (input:string) =
   input
@@ -38,8 +42,8 @@ let input2Props (input:string) =
   |> Seq.map (fun (index, c) ->
     let char2bool c = (c <> '0') in
     if char2bool c then
-      OrForm.Literal(Atomic (x c index)) else
-      OrForm.Literal(LNot (Not (x c index)))
+      OrForm.Literal(Atomic (x index)) else
+      OrForm.Literal(LNot (Not (x index)))
   )
 // for all states that is not start state, px0=false
 let pInitials start =
@@ -56,7 +60,7 @@ let rules2Props' n =
       // p(state, 0) AND x(input, 1) -> OR{ Not p(s, 1) : for all s∈states, Rule(state, input, next) ∉ rules }
       // AND { Not p(..) OR Not x(..) OR Not p(s, 1) : for all s∈states, Rule(state, input, next) ∉ rules }
       let p' = p state n in
-      let x' = x input (n + 1) in
+      let x' = x (n + 1) in
       states
       |> Seq.filter (fun state -> state <> next)
       |> Seq.map (fun state ->
@@ -68,4 +72,3 @@ let terms =
   [input2Props inputString;seq [pInitials start]; rules2Props n]
   |> Seq.concat
   |> CNF.And
-

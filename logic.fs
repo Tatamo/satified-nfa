@@ -113,11 +113,24 @@ let rec formatLT literalTerm =
   | LTLiteral x -> formatLiteral x
   | LTAnd x -> "(" + (String.concat ") AND (" (Seq.map formatLT x)) + ")"
   | LTOr x -> "(" + (String.concat ") OR (" (Seq.map formatLT x)) + ")"
+
+let rec formatLiteral' literal =
+  match literal with
+  | Atomic x ->
+    match x with
+    | True -> "True"
+    | False -> "False"
+    | Var name -> name
+  | LNot (Not x) -> "-" + (formatLiteral' (Atomic x))
 let rec formatOrForm orForm=
   match orForm with
-  | Literal x -> formatLiteral x
-  | Or x -> "(" + (String.concat ") OR (" (Seq.map formatLiteral x)) + ")"
+  | Literal x -> formatLiteral' x
+  | Or x -> (String.concat " " (Seq.map formatLiteral' x))
 let rec formatCNF cnf =
+  match cnf with
+  | OrForm x -> formatOrForm x
+  | And x -> (String.concat "\n" (Seq.map formatOrForm x))
+let rec formatCNF' cnf =
   match cnf with
   | OrForm x -> formatOrForm x
   | And x -> "(" + (String.concat ") AND (" (Seq.map formatOrForm x)) + ")"
