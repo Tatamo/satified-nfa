@@ -12,10 +12,11 @@ let gterm = GNot (GAnd [
     GAtomic False
   ]
 ])
+let inline input f = System.Console.ReadLine() |> f
 
 [<EntryPoint>]
 let main argv =
     // printfn "%A" (gterm |> convertDeMorgan |> literalize |> formatLT)
     // printfn "%A" (gterm |> convertDeMorgan |> literalize |> mergeDuplicateAndOr |> formatLT)
-    printfn "%s" (terms |> formatCNF)
+    printfn "%s" (terms (input string) |> formatCNF)
     0 // return an integer exit code
