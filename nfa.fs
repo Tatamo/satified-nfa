@@ -69,7 +69,7 @@ let rules2PropsTrue' i =
     // Not p(..) OR Not x(..) OR (OR{p(s, i+1) : for all s∈states, Rule(s, input, next) ∈ rules })
       let p' = p from i in
       let x' = x (i + 1) in
-      let x'' = if char2bool input then Atomic x' else LNot (Not x') in
+      let x'' = if not (char2bool input) then Atomic x' else LNot (Not x') in
       Seq.concat([
         seq [LNot (Not p'); x''];
         states
@@ -86,7 +86,7 @@ let rules2PropsFalse' i =
       // AND { Not p(..) OR Not x(..) OR Not p(s, i+1) : for all s∈states, Rule(s, input, next) ∉ rules }
       let p' = p from i in
       let x' = x (i + 1) in
-      let x'' = if char2bool input then Atomic x' else LNot (Not x') in
+      let x'' = if not (char2bool input) then Atomic x' else LNot (Not x') in
       states
       |> Seq.filter (fun s -> s <> next)
       |> Seq.map (fun s ->
