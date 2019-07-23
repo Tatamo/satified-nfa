@@ -11,7 +11,7 @@ type Rules = Set<Rule>
 type NFA = Alphabets * States * Rules * State * States
 
 let inputString = "0110"
-let n = inputString.Length
+let inputLength = inputString.Length
 
 let alphabets = Set.ofList ['0'; '1']
 let q0 = State(0)
@@ -32,7 +32,7 @@ let nfa = (alphabets, states, rules, start, accepts)
 //let x (input:char) (index:int) = Var("x" + string input + "-" + index.ToString())
 let indexState state =
   match state with State i -> i
-let p (state:State) (index:int) = Var((inputString.Length + index * states.Count + indexState state).ToString())
+let p (state:State) (index:int) = Var((inputLength + index * states.Count + indexState state).ToString())
 let x (index:int) = Var((index - 1).ToString())
 
 let char2bool c = (c <> '0')
@@ -52,6 +52,14 @@ let pInitials start =
     if state = start then
       OrForm.Or [Atomic (p state 0)] else
       OrForm.Or [LNot (Not (p state 0))])
+
+let pTerminals accepts inputLength =
+  states
+  |> Seq.map (fun state ->
+    if Set.contains state accepts then
+      OrForm.Or [Atomic (p state inputLength)] else
+      OrForm.Or [LNot (Not (p state inputLength))])
+
 let rules2Props' i =
   Seq.collect (fun rule ->
     match rule with
@@ -69,6 +77,6 @@ let rules2Props' i =
 let rules2Props n = seq {0 .. n-1} |> Seq.collect rules2Props'
 
 let terms =
-  [input2Props inputString; pInitials start; rules2Props n]
+  [input2Props inputString; pInitials start; pTerminals accepts inputLength; rules2Props inputLength]
   |> Seq.concat
   |> CNF.And
