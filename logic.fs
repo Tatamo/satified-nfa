@@ -52,7 +52,6 @@ type CNF =
   | OrForm of OrForm
   | And of seq<OrForm>
 
-
 let rec convertDeMorgan term =
   match term with
   | GAtomic x -> SLTLiteral (SLAtomic x)
