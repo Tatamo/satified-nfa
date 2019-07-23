@@ -69,4 +69,3 @@ let terms =
   |> Seq.concat
   |> CNF.And
 
-//let code nfa:NFA n:int =

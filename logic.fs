@@ -76,20 +76,6 @@ let rec literalize semilLiteralTerm =
   | SLTAnd x -> LTAnd(Seq.map literalize x)
   | SLTOr x -> LTOr(Seq.map literalize x)
 
-let rec formatLiteral literal =
-  match literal with
-  | Atomic x ->
-    match x with
-    | True -> "True"
-    | False -> "False"
-    | Var name -> name
-  | LNot (Not x) -> "NOT " + (formatLiteral (Atomic x))
-let rec formatLT literalTerm =
-  match literalTerm with
-  | LTLiteral x -> formatLiteral x
-  | LTAnd x -> "(" + (String.concat ") AND (" (Seq.map formatLT x)) + ")"
-  | LTOr x -> "(" + (String.concat ") OR (" (Seq.map formatLT x)) + ")"
-
 let rec mergeDuplicateAndOr literalTerm =
   match literalTerm with
   | LTLiteral _ -> literalTerm
@@ -113,6 +99,28 @@ let rec mergeDuplicateAndOr literalTerm =
         |> Seq.collect (fun e ->  match e with LTOr x -> x | _ -> seq [])
       ] |> Seq.map mergeDuplicateAndOr
     )
+
+let rec formatLiteral literal =
+  match literal with
+  | Atomic x ->
+    match x with
+    | True -> "True"
+    | False -> "False"
+    | Var name -> name
+  | LNot (Not x) -> "NOT " + (formatLiteral (Atomic x))
+let rec formatLT literalTerm =
+  match literalTerm with
+  | LTLiteral x -> formatLiteral x
+  | LTAnd x -> "(" + (String.concat ") AND (" (Seq.map formatLT x)) + ")"
+  | LTOr x -> "(" + (String.concat ") OR (" (Seq.map formatLT x)) + ")"
+let rec formatOrForm orForm=
+  match orForm with
+  | Literal x -> formatLiteral x
+  | Or x -> "(" + (String.concat ") OR (" (Seq.map formatLiteral x)) + ")"
+let rec formatCNF cnf =
+  match cnf with
+  | OrForm x -> formatOrForm x
+  | And x -> "(" + (String.concat ") AND (" (Seq.map formatOrForm x)) + ")"
 
 (*
 type LiteralTerm' =
