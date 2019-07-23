@@ -28,8 +28,8 @@ let rules = Set.ofList [
 ]
 let nfa = (alphabets, states, rules, start, accepts)
 
-//let p (state:State) (index:int) = Var("p" + (match state with State(i) -> i.ToString()) + "-" + index.ToString() )
-//let x (input:char) (index:int) = Var("x" + string input + "-" + index.ToString())
+//let p (state:State) (index:int) = Var("p" + index.ToString() + (match state with State(i) -> i.ToString()))
+//let x (index:int) = Var("x" + index.ToString())
 let indexState state =
   match state with State i -> i
 let p (state:State) (index:int) = Var((inputLength + index * states.Count + indexState state).ToString())
@@ -60,23 +60,43 @@ let pTerminals accepts inputLength =
       OrForm.Or [Atomic (p state inputLength)] else
       OrForm.Or [LNot (Not (p state inputLength))])
 
-let rules2Props' i =
+let rules2PropsTrue' i =
+  rules
+  |> Seq.map (fun rule ->
+    match rule with
+    | (from, input, next) ->
+    // p(state, i) AND x(input, i+1) -> OR{ p(s, i+1) : for all s∈states, Rule(s, input, next) ∈ rules }
+    // Not p(..) OR Not x(..) OR (OR{p(s, i+1) : for all s∈states, Rule(s, input, next) ∈ rules })
+      let p' = p from i in
+      let x' = x (i + 1) in
+      let x'' = if char2bool input then Atomic x' else LNot (Not x') in
+      Seq.concat([
+        seq [LNot (Not p'); x''];
+        states
+        |> Seq.filter (fun s -> s = next)
+        |> Seq.map (fun s -> Atomic (p s (i+1)))
+      ]) |> OrForm.Or
+  )
+
+let rules2PropsFalse' i =
   Seq.collect (fun rule ->
     match rule with
-    | (state, input, next) ->
-      // p(state, 0) AND x(input, 1) -> OR{ Not p(s, 1) : for all s∈states, Rule(s, input, next) ∉ rules }
-      // AND { Not p(..) OR Not x(..) OR Not p(s, 1) : for all s∈states, Rule(s, input, next) ∉ rules }
-      let p' = p state i in
+    | (from, input, next) ->
+      // p(from, i) AND x(input, i+1) -> AND{ Not p(s, i+1) : for all s∈states, Rule(s, input, next) ∉ rules }
+      // AND { Not p(..) OR Not x(..) OR Not p(s, i+1) : for all s∈states, Rule(s, input, next) ∉ rules }
+      let p' = p from i in
       let x' = x (i + 1) in
+      let x'' = if char2bool input then Atomic x' else LNot (Not x') in
       states
-      |> Seq.filter (fun state -> state <> next)
-      |> Seq.map (fun state ->
-        let x'' = if char2bool input then Atomic x' else LNot (Not x') in
-        OrForm.Or [LNot (Not p'); x''; LNot (Not (p state (i + 1)))]
+      |> Seq.filter (fun s -> s <> next)
+      |> Seq.map (fun s ->
+        OrForm.Or [LNot (Not p'); x''; LNot (Not (p s (i + 1)))]
        )) rules
-let rules2Props n = seq {0 .. n-1} |> Seq.collect rules2Props'
+
+let rules2PropsTrue n = seq {0 .. n-1} |> Seq.collect rules2PropsTrue'
+let rules2PropsFalse n = seq {0 .. n-1} |> Seq.collect rules2PropsFalse'
 
 let terms =
-  [input2Props inputString; pInitials start; pTerminals accepts inputLength; rules2Props inputLength]
+  [input2Props inputString; pInitials start; pTerminals accepts inputLength; rules2PropsTrue inputLength; rules2PropsFalse inputLength]
   |> Seq.concat
   |> CNF.And
