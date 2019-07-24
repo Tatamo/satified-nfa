@@ -74,24 +74,7 @@ let pTerminals accepts inputLength =
       OrForm.Or [Atomic (p inputLength state)] else
       OrForm.Or [LNot (Not (p inputLength state))])
 
-let rules2PropsTrue' mergedRules i =
- [for (from, alphabet, nexts) in mergedRules do
-  // p(i, from) AND  x(i+1)=input -> OR { p(i+1, next) : for all next ∈ nexts}
-  // NOT p.. OR NOT x.. OR ( OR{ p(i+1, next) : for all next ∈ nexts} )
-  let p' = LNot (Not (p i from)) in
-  let x' =
-    if not (char2bool alphabet) // revert literal (for NOT x...)
-    then Atomic (x (i + 1)) // x(i+1)=1
-    else LNot (Not (x (i + 1))) in // x(i+1)=0
-  if Set.isEmpty nexts then () else
-  let nextLiterals = nexts |> Seq.map (fun next -> Atomic (p (i+1) next)) in
-  yield Seq.concat([
-    seq [p'; x'];
-    nextLiterals
-  ]) |> OrForm.Or
- ] |> seq
-
-let rules2PropsFalse' mergedRules i =
+let rules2Props' mergedRules i =
  [for (from, alphabet, nexts) in mergedRules do
   // p(i, from) AND x(i+1)=input -> AND{ NOT p(i+1, next) : for all next ∈ (states \ nexts) }
   // AND { NOT p.. OR NOT x.. OR NOT p(i+1, next) : for all next ∈ (states \ nexts)} )
@@ -107,11 +90,8 @@ let rules2PropsFalse' mergedRules i =
  ] |> Seq.concat
 
 let rules2Props n =
-  let mergedRules = mergeRules rules states
-  [
-    seq {0 .. n-1} |> Seq.collect (rules2PropsTrue' mergedRules);
-    seq {0 .. n-1} |> Seq.collect (rules2PropsFalse' mergedRules)
-  ] |> Seq.concat
+  let mergedRules = mergeRules rules states in
+  seq {0 .. n-1} |> Seq.collect (rules2Props' mergedRules)
 
 // for each input index 0<=i<=n, at least one of p(?, i) is true
 let stateConstraints n =
@@ -122,7 +102,6 @@ let stateConstraints n =
 
 let terms (input:string) =
   let n = input.Length in
-//  [input2Props input; pInitials start; pTerminals accepts n; rules2PropsTrue n; rules2PropsFalse n]
   [input2Props input; pInitials start; pTerminals accepts n; rules2Props n; stateConstraints n]
   |> Seq.concat
   |> CNF.And
