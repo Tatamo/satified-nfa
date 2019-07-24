@@ -46,10 +46,14 @@ let inputChar2Prop c =
 
 let char2bool c = (c <> '0')
 let input2Props (input:string) =
+  let inputChar2Prop' (i, c) =
+    match inputChar2Prop c with
+    | Some (x) -> Some (i, x)
+    | None -> None
   input
   |> Seq.toList
-  |> Seq.choose inputChar2Prop
   |> Seq.indexed
+  |> Seq.choose inputChar2Prop'
   |> Seq.map (fun (index, b) ->
     if b then
       OrForm.Literal(Atomic (x (index + 1))) else
