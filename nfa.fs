@@ -64,45 +64,55 @@ let pTerminals accepts inputLength =
       OrForm.Or [Atomic (p inputLength state)] else
       OrForm.Or [LNot (Not (p inputLength state))])
 
-let rules2PropsTrue' i =
-  rules
-  |> Seq.map (fun rule ->
-    match rule with
-    | (from, input, next) ->
-    // p(state, i) AND (~)x(input, i+1) -> OR{ p(s, i+1) : for all s∈states, Rule(s, input, next) ∈ rules }
-    // Not p(..) OR Not x(..) OR (OR{p(s, i+1) : for all s∈states, Rule(s, input, next) ∈ rules })
-      let p' = p i from in
-      let x' = x (i + 1) in
-      let x'' = if not (char2bool input) then Atomic x' else LNot (Not x') in
-      Seq.concat([
-        seq [LNot (Not p'); x''];
-        states
-        |> Seq.filter (fun s -> s = next)
-        |> Seq.map (fun s -> Atomic (p (i+1) s))
-      ]) |> OrForm.Or
+let rules2PropsTrue' mergedRules i =
+ [for (from, input, nexts) in mergedRules do
+  // p(i, from) AND  x(i+1)=input -> OR { p(i+1, next) : for all next ∈ nexts}
+  // NOT p.. OR NOT x.. OR ( OR{ p(i+1, next) : for all next ∈ nexts} )
+  let p' = LNot (Not (p i from)) in
+  let x' =
+    if not (char2bool input) // revert literal (for NOT x...)
+    then Atomic (x (i + 1)) // x(i+1)=1
+    else LNot (Not (x (i + 1))) in // x(i+1)=0
+  if Set.isEmpty nexts then () else
+  let nextLiterals = nexts |> Seq.map (fun next -> Atomic (p (i+1) next)) in
+  yield Seq.concat([
+    seq [p'; x'];
+    nextLiterals
+  ]) |> OrForm.Or
+ ] |> seq
+
+let rules2PropsFalse' mergedRules i =
+ [for (from, input, nexts) in mergedRules do
+  // p(i, from) AND x(i+1)=input -> AND{ NOT p(i+1, next) : for all next ∈ (states \ nexts) }
+  // AND { NOT p.. OR NOT x.. OR NOT p(i+1, next) : for all next ∈ (states \ nexts)} )
+  let p' = LNot (Not (p i from)) in
+  let x' =
+    if not (char2bool input) // revert literal (for NOT x...)
+    then Atomic (x (i + 1)) // x(i+1)=1
+    else LNot (Not (x (i + 1))) in // x(i+1)=0
+  let notNexts = Set.difference states nexts
+  if Set.isEmpty notNexts then () else
+  let nextLiterals = notNexts |> Seq.map (fun next -> LNot (Not (p (i+1) next))) in
+  yield seq { for n in nextLiterals -> OrForm.Or [p'; x'; n] }
+ ] |> Seq.concat
+
+let rules2Props n =
+  let mergedRules = mergeRules rules states
+  [
+    seq {0 .. n-1} |> Seq.collect (rules2PropsTrue' mergedRules);
+    seq {0 .. n-1} |> Seq.collect (rules2PropsFalse' mergedRules)
+  ] |> Seq.concat
+
+// for each input index 0<=i<=n, at least one of p(?, i) is true
+let stateConstraints n =
+  seq {0 .. n}
+  |> Seq.map (fun i ->
+    OrForm.Or( states |> Seq.map (fun state -> Atomic (p i state)))
   )
-
-// TODO: p(1, i) AND (x(input, i+1)=0) -> AND {NOT p(s,i+1) for all s∈states} のときの制約がない
-let rules2PropsFalse' i =
-  Seq.collect (fun rule ->
-    match rule with
-    | (from, input, next) ->
-      // p(from, i) AND (~)x(input, i+1) -> AND{ Not p(s, i+1) : for all s∈states, Rule(s, input, next) ∉ rules }
-      // AND { Not p(..) OR Not x(..) OR Not p(s, i+1) : for all s∈states, Rule(s, input, next) ∉ rules }
-      let p' = p i from in
-      let x' = x (i + 1) in
-      let x'' = if not (char2bool input) then Atomic x' else LNot (Not x') in
-      states
-      |> Seq.filter (fun s -> s <> next)
-      |> Seq.map (fun s ->
-        OrForm.Or [LNot (Not p'); x''; LNot (Not (p (i + 1) s))]
-       )) rules
-
-let rules2PropsTrue n = seq {0 .. n-1} |> Seq.collect rules2PropsTrue'
-let rules2PropsFalse n = seq {0 .. n-1} |> Seq.collect rules2PropsFalse'
 
 let terms (input:string) =
   let n = input.Length in
-  [input2Props input; pInitials start; pTerminals accepts n; rules2PropsTrue n; rules2PropsFalse n]
+//  [input2Props input; pInitials start; pTerminals accepts n; rules2PropsTrue n; rules2PropsFalse n]
+  [input2Props input; pInitials start; pTerminals accepts n; rules2Props n; stateConstraints n]
   |> Seq.concat
   |> CNF.And
