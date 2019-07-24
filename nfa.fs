@@ -25,6 +25,17 @@ let rules = Set.ofList [
 ]
 let nfa = (alphabets, states, rules, start, accepts)
 
+type MergedRules = Set<State * Alphabet * Set<State>>
+let mergeRules (rules:Rules) (states:States) =
+ [for state in states do
+  for alphabet in alphabets ->
+  let nextStates =  (
+    rules
+    |> Seq.filter (fun (from, input, _) -> from = state && input = alphabet)
+    |> Seq.map (fun (_, _, next) -> next)) |> Set.ofSeq in
+  (state, alphabet, nextStates)
+ ]
+
 let p (index:int) (state:State) = Var("p" + index.ToString() + "_" + (match state with State(i) -> i.ToString()))
 let x (index:int) = Var("x" + index.ToString())
 
