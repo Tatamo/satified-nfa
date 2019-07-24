@@ -31,7 +31,7 @@ let mergeRules (rules:Rules) (states:States) =
   for alphabet in alphabets ->
   let nextStates =  (
     rules
-    |> Seq.filter (fun (from, input, _) -> from = state && input = alphabet)
+    |> Seq.filter (fun (from, alphabet', _) -> from = state && alphabet' = alphabet)
     |> Seq.map (fun (_, _, next) -> next)) |> Set.ofSeq in
   (state, alphabet, nextStates)
  ]
@@ -39,13 +39,19 @@ let mergeRules (rules:Rules) (states:States) =
 let p (index:int) (state:State) = Var("p" + index.ToString() + "_" + (match state with State(i) -> i.ToString()))
 let x (index:int) = Var("x" + index.ToString())
 
+let inputChar2Prop c =
+  if c = '1' then Some true else
+  if c = '0' then Some false else
+  None
+
 let char2bool c = (c <> '0')
 let input2Props (input:string) =
   input
   |> Seq.toList
+  |> Seq.choose inputChar2Prop
   |> Seq.indexed
-  |> Seq.map (fun (index, c) ->
-    if char2bool c then
+  |> Seq.map (fun (index, b) ->
+    if b then
       OrForm.Literal(Atomic (x (index + 1))) else
       OrForm.Literal(LNot (Not (x (index + 1))))
   )
@@ -65,12 +71,12 @@ let pTerminals accepts inputLength =
       OrForm.Or [LNot (Not (p inputLength state))])
 
 let rules2PropsTrue' mergedRules i =
- [for (from, input, nexts) in mergedRules do
+ [for (from, alphabet, nexts) in mergedRules do
   // p(i, from) AND  x(i+1)=input -> OR { p(i+1, next) : for all next ∈ nexts}
   // NOT p.. OR NOT x.. OR ( OR{ p(i+1, next) : for all next ∈ nexts} )
   let p' = LNot (Not (p i from)) in
   let x' =
-    if not (char2bool input) // revert literal (for NOT x...)
+    if not (char2bool alphabet) // revert literal (for NOT x...)
     then Atomic (x (i + 1)) // x(i+1)=1
     else LNot (Not (x (i + 1))) in // x(i+1)=0
   if Set.isEmpty nexts then () else
@@ -82,12 +88,12 @@ let rules2PropsTrue' mergedRules i =
  ] |> seq
 
 let rules2PropsFalse' mergedRules i =
- [for (from, input, nexts) in mergedRules do
+ [for (from, alphabet, nexts) in mergedRules do
   // p(i, from) AND x(i+1)=input -> AND{ NOT p(i+1, next) : for all next ∈ (states \ nexts) }
   // AND { NOT p.. OR NOT x.. OR NOT p(i+1, next) : for all next ∈ (states \ nexts)} )
   let p' = LNot (Not (p i from)) in
   let x' =
-    if not (char2bool input) // revert literal (for NOT x...)
+    if not (char2bool alphabet) // revert literal (for NOT x...)
     then Atomic (x (i + 1)) // x(i+1)=1
     else LNot (Not (x (i + 1))) in // x(i+1)=0
   let notNexts = Set.difference states nexts
