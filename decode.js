@@ -28,6 +28,17 @@ function formatVars(vars) {
   }
 }
 
+function traceStates(ptable) {
+  const n = ptable.length;
+  const m = n === 0 ? 0 : ptable[0].length;
+  let result = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const states = ptable[i];
+    result.push(`(${[...states.entries()].filter(([i, v]) => v).map(([i, v]) => i).join(" or ")})`);
+  }
+  return result.reverse().join("->")
+}
+
 const input = require("fs").readFileSync("/dev/stdin", "utf8");
 if (input.trim() === "~") {
   console.log("UNSAT");
@@ -36,5 +47,5 @@ if (input.trim() === "~") {
   formatVars(vars);
   console.log("SAT");
   console.log(`input string: ${vars.x.join("")}`);
-
+  console.log(traceStates(vars.p));
 }
